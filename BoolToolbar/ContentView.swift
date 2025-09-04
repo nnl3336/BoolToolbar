@@ -33,7 +33,7 @@ class ToolbarViewController: UIViewController {
 
     private var showToolbar = true {
         didSet {
-            toolbar.isHidden = !showToolbar
+            setToolbar(type: showToolbar ? .normal : .edit)
         }
     }
 
@@ -56,39 +56,6 @@ class ToolbarViewController: UIViewController {
     }
     
     //***
-    
-    @objc private func switchChanged(_ sender: UISwitch) {
-        showToolbar = sender.isOn
-        setToolbar(type: currentType)
-    }
-
-    
-    func setToolbar(type: ToolbarType) {
-        currentType = type
-        
-        switch type {
-        case .normal:
-            let add = UIBarButtonItem(title: "Add", style: .plain, target: self, action: #selector(addTapped))
-            let delete = UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteTapped))
-            toolbar.items = [add, UIBarButtonItem.flexibleSpace(), delete]
-            
-        case .edit:
-            let cancel = UIBarButtonItem(title: "Cancel", style: .plain, target: self, action: #selector(cancelTapped))
-            let save = UIBarButtonItem(title: "Save", style: .done, target: self, action: #selector(saveTapped))
-            toolbar.items = [cancel, UIBarButtonItem.flexibleSpace(), save]
-            
-        case .custom:
-            toolbar.items = []
-        }
-        
-        // ✅ toggle がオフなら非表示、オンなら enum に応じて表示
-        if !showToolbar || type == .custom {
-            toolbar.isHidden = true
-        } else {
-            toolbar.isHidden = false
-        }
-    }
-
     
     private func setupToolbar() {
         view.addSubview(toolbar)
@@ -121,10 +88,45 @@ class ToolbarViewController: UIViewController {
         ])
     }
     
-    
+    @objc private func switchChanged(_ sender: UISwitch) {
+        showToolbar = sender.isOn
+        
+        print("Switch changed:", showToolbar)
+        
+        //setToolbar(type: showToolbar ? .normal : .edit)
+    }
+
+
     
     // MARK: - Enum に応じて toolbar を切り替える
-    
+    func setToolbar(type: ToolbarType) {
+        currentType = type
+        
+        switch type {
+        case .normal:
+            // toggle に従って表示/非表示
+            toolbar.items = [
+                UIBarButtonItem(title: "Add", style: .plain, target: self, action: #selector(addTapped)),
+                UIBarButtonItem.flexibleSpace(),
+                UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteTapped))
+            ]
+            toolbar.isHidden = !showToolbar // toolbar.isHidden = false
+            
+        case .edit:
+            // toggle に関係なく常に表示
+            toolbar.items = [
+                UIBarButtonItem(title: "Cancel", style: .plain, target: self, action: #selector(cancelTapped)),
+                UIBarButtonItem.flexibleSpace(),
+                UIBarButtonItem(title: "Save", style: .done, target: self, action: #selector(saveTapped))
+            ]
+            toolbar.isHidden = false
+            
+        case .custom:
+            toolbar.items = []
+            toolbar.isHidden = true
+        }
+    }
+
     
     // MARK: - Toolbar Actions
     @objc private func addTapped() { print("Add tapped") }
