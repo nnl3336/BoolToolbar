@@ -8,51 +8,127 @@
 import SwiftUI
 import CoreData
 
+// 3. SwiftUI で使う
 struct ContentView: View {
-    @State private var showToolbar = true
     
     var body: some View {
-        VStack {
-            Toggle("Show Toolbar", isOn: $showToolbar)
-                .padding()
-            
-            Spacer()
-            
-            BoolToolbar(isVisible: $showToolbar)
-                .frame(height: 44) // Toolbar の高さ
-        }
+            BoolToolbarView()
+                .edgesIgnoringSafeArea(.bottom)
     }
 }
 
-struct BoolToolbar: UIViewRepresentable {
-    @Binding var isVisible: Bool
+// 1. SwiftUI から UIViewController を表示する
+struct BoolToolbarView: UIViewControllerRepresentable {
     
-    func makeUIView(context: Context) -> UIToolbar {
-        let toolbar = UIToolbar()
+    func makeUIViewController(context: Context) -> ToolbarViewController {
+        let vc = ToolbarViewController()
+        return vc
+    }
+    
+    func updateUIViewController(_ uiViewController: ToolbarViewController, context: Context) {
+    }
+}
+
+class ToolbarViewController: UIViewController {
+
+    private var showToolbar = true {
+        didSet {
+            toolbar.isHidden = !showToolbar
+        }
+    }
+
+    enum ToolbarType {
+        case normal
+        case edit
+        case custom
+    }
+    
+    private let toolbar = UIToolbar()
+    private var currentType: ToolbarType = .normal
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        
+        setupToolbar()
+        setupToggle() // UISwitch でトグル
+        setToolbar(type: .normal)
+    }
+    
+    //***
+    
+    @objc private func switchChanged(_ sender: UISwitch) {
+        showToolbar = sender.isOn
+        setToolbar(type: currentType)
+    }
+
+    
+    func setToolbar(type: ToolbarType) {
+        currentType = type
+        
+        switch type {
+        case .normal:
+            let add = UIBarButtonItem(title: "Add", style: .plain, target: self, action: #selector(addTapped))
+            let delete = UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteTapped))
+            toolbar.items = [add, UIBarButtonItem.flexibleSpace(), delete]
+            
+        case .edit:
+            let cancel = UIBarButtonItem(title: "Cancel", style: .plain, target: self, action: #selector(cancelTapped))
+            let save = UIBarButtonItem(title: "Save", style: .done, target: self, action: #selector(saveTapped))
+            toolbar.items = [cancel, UIBarButtonItem.flexibleSpace(), save]
+            
+        case .custom:
+            toolbar.items = []
+        }
+        
+        // ✅ toggle がオフなら非表示、オンなら enum に応じて表示
+        if !showToolbar || type == .custom {
+            toolbar.isHidden = true
+        } else {
+            toolbar.isHidden = false
+        }
+    }
+
+    
+    private func setupToolbar() {
+        view.addSubview(toolbar)
         toolbar.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            toolbar.heightAnchor.constraint(equalToConstant: 44)
+        ])
+    }
+    
+    private func setupToggle() {
+        let toggleSwitch = UISwitch()
+        toggleSwitch.isOn = showToolbar
+        toggleSwitch.addTarget(self, action: #selector(switchChanged(_:)), for: .valueChanged)
+        toggleSwitch.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(toggleSwitch)
         
-        let button1 = UIBarButtonItem(title: "Action1", style: .plain, target: context.coordinator, action: #selector(Coordinator.action1))
-        let button2 = UIBarButtonItem(title: "Action2", style: .plain, target: context.coordinator, action: #selector(Coordinator.action2))
-        toolbar.items = [button1, UIBarButtonItem.flexibleSpace(), button2]
+        let label = UILabel()
+        label.text = "Show Toolbar"
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
         
-        return toolbar
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            label.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            toggleSwitch.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 10),
+            toggleSwitch.centerYAnchor.constraint(equalTo: label.centerYAnchor)
+        ])
     }
     
-    func updateUIView(_ uiView: UIToolbar, context: Context) {
-        // Bool に応じて表示/非表示
-        uiView.isHidden = !isVisible
-    }
     
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
     
-    class Coordinator: NSObject {
-        @objc func action1() {
-            print("Action1 tapped")
-        }
-        @objc func action2() {
-            print("Action2 tapped")
-        }
-    }
+    // MARK: - Enum に応じて toolbar を切り替える
+    
+    
+    // MARK: - Toolbar Actions
+    @objc private func addTapped() { print("Add tapped") }
+    @objc private func deleteTapped() { print("Delete tapped") }
+    @objc private func cancelTapped() { print("Cancel tapped") }
+    @objc private func saveTapped() { print("Save tapped") }
 }
